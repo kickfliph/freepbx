@@ -86,7 +86,7 @@ apt-get upgrade
 apt-get install -y build-essential linux-headers-`uname -r` openssh-server apache2 mariadb-server mariadb-client bison flex php php-curl php-cli php-pdo php-mysql php-pear php-gd php-mbstring php-intl php-bcmath curl sox libncurses5-dev libssl-dev mpg123 libxml2-dev libnewt-dev sqlite3 libsqlite3-dev pkg-config automake libtool autoconf git unixodbc-dev uuid uuid-dev libasound2-dev libogg-dev libvorbis-dev libicu-dev libcurl4-openssl-dev libical-dev libneon27-dev libsrtp2-dev libspandsp-dev sudo subversion libtool-bin python-dev unixodbc dirmngr sendmail-bin sendmail asterisk debhelper-compat cmake libmariadb-dev odbc-mariadb php-ldap
 
 #Install Node.js
-curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
+curl -sL https://deb.nodesource.com/setup_current.x  | sudo -E bash -
 apt-get install -y nodejs
 
 #Install this required Pear module
@@ -103,9 +103,11 @@ sed -i 's/(!)//' asterisk.conf
 touch modules.conf
 touch cdr.conf
 
+php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
+
 #Configure Apache web server
-sed -i 's/\(^upload_max_filesize = \).*/\120M/' /etc/php/7.3/apache2/php.ini
-sed -i 's/\(^memory_limit = \).*/\1256M/' /etc/php/7.3/apache2/php.ini
+sed -i 's/\(^upload_max_filesize = \).*/\120M/' /etc/php/$php_ver/apache2/php.ini
+sed -i 's/\(^memory_limit = \).*/\1256M/' /etc/php/$php_ver/apache2/php.ini
 sed -i 's/^\(User\|Group\).*/\1 asterisk/' /etc/apache2/apache2.conf
 sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 a2enmod rewrite
