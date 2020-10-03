@@ -25,14 +25,6 @@ elif [[ -e /etc/debian_version ]]; then
 	os="debian"
 	os_version=$(grep -oE '[0-9]+' /etc/debian_version | head -1)
 	apt-get install git build-essential wget -y
-elif [[ -e /etc/centos-release ]]; then
-	os="centos"
-	os_version=$(grep -oE '[0-9]+' /etc/centos-release | head -1)
-	yum install gcc gcc-c++ kernel-devel make
-elif [[ -e /etc/fedora-release ]]; then
-	os="fedora"
-	os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
-	yum install gcc gcc-c++ kernel-devel make
 else
 	echo "This installer seems to be running on an unsupported distribution.
 Supported distributions are Ubuntu, Debian, CentOS, and Fedora."
@@ -51,12 +43,6 @@ This version of Debian is too old and unsupported."
 	exit
 fi
 
-if [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
-	echo "CentOS 7 or higher is required to use this installer.
-This version of CentOS is too old and unsupported."
-	exit
-fi
-
 # Detect environments where $PATH does not include the sbin directories
 if ! grep -q sbin <<< "$PATH"; then
 	echo '$PATH does not include sbin. Try using "su -" instead of "su".'
@@ -65,12 +51,6 @@ fi
 
 systemd-detect-virt -cq
 is_container="$?"
-
-if [[ "$os" == "fedora" && "$os_version" -eq 31 && $(uname -r | cut -d "." -f 2) -lt 6 && ! "$is_container" -eq 0 ]]; then
-	echo 'Fedora 31 is supported, but the kernel is outdated.
-Upgrade the kernel using "dnf upgrade kernel" and restart.'
-	exit
-fi
 
 if [[ "$EUID" -ne 0 ]]; then
 	echo "This installer needs to be run with superuser privileges."
@@ -84,6 +64,16 @@ apt-get upgrade
 
 #Install all the necessary packages
 apt-get install -y build-essential linux-headers-`uname -r` openssh-server apache2 mariadb-server mariadb-client bison flex php php-curl php-cli php-pdo php-mysql php-pear php-gd php-mbstring php-intl php-bcmath curl sox libncurses5-dev libssl-dev mpg123 libxml2-dev libnewt-dev sqlite3 libsqlite3-dev pkg-config automake libtool autoconf git unixodbc-dev uuid uuid-dev libasound2-dev libogg-dev libvorbis-dev libicu-dev libcurl4-openssl-dev libical-dev libneon27-dev libsrtp2-dev libspandsp-dev sudo subversion libtool-bin python-dev unixodbc dirmngr sendmail-bin sendmail asterisk debhelper-compat cmake libmariadb-dev odbc-mariadb php-ldap
+
+#Istall the mongodb for freepbx
+sudo apt-get install gnupg
+wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+echo "deb http://repo.mongodb.org/apt/debian buster/mongodb-org/4.4 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+sudo apt-get update
+sudo apt-get install -y mongodb-org
+sudo systemctl start mongod
+sudo systemctl status mongod
+sudo systemctl enable mongod
 
 #Install Node.js
 curl -sL https://deb.nodesource.com/setup_11.x  | sudo -E bash -
