@@ -213,7 +213,7 @@ certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domai
 
 sudo ln -s /etc/nginx/sites-available/freepbx /etc/nginx/sites-enabled/
 echo " "
-data_var3=`ls -ltrSh /etc/nginx/sites-enabled/
+data_var3=`ls -ltrSh /etc/nginx/sites-enabled/`
 echo "=================================================================================="
 nginx -t
 service nginix restart
@@ -229,9 +229,10 @@ echo "##########################################################################
 echo "#              Please answer Y to all questions                                                                   #"
 echo "###################################################################################################################"
 echo " "
+
 #Post-install tasks
 mysql_secure_installation
-echo' '
+echo " "
 touch /etc/xinetd.d/tftp
 cat >> /etc/xinetd.d/tftp << EOF
 service tftp
@@ -275,7 +276,9 @@ port = ftp
 filter = pure-ftpd
 logpath = /var/log/syslog
 maxretry = 3
+
 EOF
+
 sudo systemctl enable fail2ban.service
 sudo systemctl start fail2ban.service
 wget http://www.voipbl.org/voipbl.sh -O /usr/local/bin/voipbl.sh
@@ -300,5 +303,6 @@ touch /etc/cron.d/voipbl
 cat >> /etc/cron.d/voipbl << EOF
 # update blacklist each 4 hours
 0 */4 * * * * root /usr/local/bin/voipbl.sh
+
 EOF
 sudo systemctl restart fail2ban
