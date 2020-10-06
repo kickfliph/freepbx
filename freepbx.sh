@@ -27,7 +27,7 @@ elif [[ -e /etc/debian_version ]]; then
 	apt-get install git build-essential wget -y
 else
 	echo "This installer seems to be running on an unsupported distribution.
-Supported distributions are Ubuntu, Debian, CentOS, and Fedora."
+Supported distributions are Ubuntu, Debian."
 	exit
 fi
 
@@ -49,128 +49,255 @@ if ! grep -q sbin <<< "$PATH"; then
 	exit
 fi
 
-systemd-detect-virt -cq
-is_container="$?"
-
 if [[ "$EUID" -ne 0 ]]; then
 	echo "This installer needs to be run with superuser privileges."
 	exit
 fi
+#Initial upgrade and install
+apt update && apt -y upgrade && apt install lsb-release
 
-echo deb http://ftp.us.debian.org/debian/ buster-backports main > /etc/apt/sources.list.d/backports.list
-echo deb-src http://ftp.us.debian.org/debian/ buster-backports main >> /etc/apt/sources.list.d/backports.list
-apt-get update
-apt-get upgrade
+#PHP
+apt -y install curl apt-transport-https ca-certificates
+sudo apt install php-fpm php-mbstring php-xmlrpc php-soap php-apcu php-smbclient php-ldap php-redis php-gd php-xml php-intl php-json php-imagick php-mysql php-cli php-ldap php-zip php-curl php-dev libmcrypt-dev php-pear -y
 
-#Install all the necessary packages
-apt-get install -y build-essential linux-headers-`uname -r` openssh-server apache2 mariadb-server mariadb-client bison flex php php-curl php-cli php-pdo php-mysql php-pear php-gd php-mbstring php-intl php-bcmath curl sox libncurses5-dev libssl-dev mpg123 libxml2-dev libnewt-dev sqlite3 libsqlite3-dev pkg-config automake libtool autoconf git unixodbc-dev uuid uuid-dev libasound2-dev libogg-dev libvorbis-dev libicu-dev libcurl4-openssl-dev libical-dev libneon27-dev libsrtp2-dev libspandsp-dev sudo subversion libtool-bin python-dev unixodbc dirmngr sendmail-bin sendmail asterisk debhelper-compat cmake libmariadb-dev odbc-mariadb php-ldap
+#All Others
+apt -y install nginx-full locales sngrep build-essential aptitude openssh-server mariadb-server mariadb-client bison doxygen flex php-pear curl sox libncurses5-dev libssl-dev libmariadbclient-dev mpg123 libxml2-dev libnewt-dev sqlite3 libsqlite3-dev pkg-config automake libtool-bin autoconf git subversion uuid uuid-dev libiksemel-dev tftpd postfix mailutils vim ntp libspandsp-dev libcurl4-openssl-dev libical-dev libneon27-dev libasound2-dev libogg-dev libvorbis-dev libicu-dev libsrtp*-dev unixodbc unixodbc-dev python-dev xinetd e2fsprogs dbus sudo xmlstarlet lame ffmpeg dirmngr linux-headers*
 
-#Istall the mongodb for freepbx
-sudo apt-get install gnupg
-wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
-echo "deb http://repo.mongodb.org/apt/debian buster/mongodb-org/4.4 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
-sudo apt-get update
-sudo apt-get install -y mongodb-org
-sudo systemctl start mongod
-sudo systemctl status mongod
-sudo systemctl enable mongod
+#Node.js
+curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+apt -y install nodejs
 
-#Install Node.js
-curl -sL https://deb.nodesource.com/setup_11.x  | sudo -E bash -
-apt-get install -y nodejs
+#ODBC
+wget https://downloads.mariadb.com/Connectors/odbc/connector-odbc-2.0.19/\
+mariadb-connector-odbc-2.0.19-ga-debian-x86_64.tar.gz -P /usr/src
+cp lib/libmaodbc.so /usr/lib/x86_64-linux-gnu/odbc/
 
-#Install this required Pear module
-pear install Console_Getopt
-
-#Prepare Asterisk
-systemctl stop asterisk
-systemctl disable asterisk
-cd /etc/asterisk
-mkdir DIST
-mv * DIST
-cp DIST/asterisk.conf .
-sed -i 's/(!)//' asterisk.conf
-touch modules.conf
-touch cdr.conf
-
-php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
-
-#Configure Apache web server
-sed -i 's/\(^upload_max_filesize = \).*/\120M/' /etc/php/$php_ver/apache2/php.ini
-sed -i 's/\(^memory_limit = \).*/\1256M/' /etc/php/$php_ver/apache2/php.ini
-sed -i 's/^\(User\|Group\).*/\1 asterisk/' /etc/apache2/apache2.conf
-sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
-a2enmod rewrite
-service apache2 restart
-rm /var/www/html/index.html
-
-#Configure ODBC
-cat <<EOF > /etc/odbcinst.ini
+#Create /etc/odbcinst.ini
+cat >> /etc/odbcinst.ini << EOF
 [MySQL]
-Description = ODBC for MySQL (MariaDB)
+Description = ODBC for MariaDB
 Driver = /usr/lib/x86_64-linux-gnu/odbc/libmaodbc.so
+Setup = /usr/lib/x86_64-linux-gnu/odbc/libodbcmyS.so
 FileUsage = 1
+  
 EOF
- 
-cat <<EOF > /etc/odbc.ini
+
+#Create /etc/odbc.ini
+cat >> /etc/odbc.ini << EOF
 [MySQL-asteriskcdrdb]
-Description = MySQL connection to 'asteriskcdrdb' database
-Driver = MySQL
-Server = localhost
-Database = asteriskcdrdb
+Description = MariaDB connection to 'asteriskcdrdb' database
+driver = MySQL
+server = localhost
+database = asteriskcdrdb
 Port = 3306
 Socket = /var/run/mysqld/mysqld.sock
-Option = 3
+option = 3
+  
 EOF
 
-#Download FFMPEG static build for sound file manipulation
-cd /usr/local/src
-wget "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
-tar xf ffmpeg-release-amd64-static.tar.xz
-cd ffmpeg-4*
-mv ffmpeg /usr/local/bin
+#MongoDB required if you plan to use XMPP
+wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+echo "deb http://repo.mongodb.org/apt/debian $(lsb_release -sc)/mongodb-org/4.2 main" \
+| sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+apt update && apt install -y mongodb-org
+systemctl enable mongod
 
-#Install FreePBX
-cd /usr/local/src
-wget http://mirror.freepbx.org/modules/packages/freepbx/freepbx-15.0-latest.tgz
-tar zxvf freepbx-15.0-latest.tgz
-cd /usr/local/src/freepbx/
+# FIND YOUR TIMEZONE
+tzselect
+timedatectl status
+systemctl restart rsyslog
+
+cp -R ../freepbx /usr/src
+
+#DAHDI
+cd /usr/src
+wget http://downloads.asterisk.org/pub/telephony/dahdi-linux-complete/dahdi-linux-complete-2.10.2+2.10.2.tar.gz
+tar zxvf dahdi-linux-complete-2.10*
+cd /usr/src/dahdi-linux-complete-2.10*/
+make all && make install && make config
+systemctl restart dahdi
+
+#Asterisk
+apt install gcc wget g++ make patch libedit-dev uuid-dev  libxml2-dev libsqlite3-dev openssl libssl-dev bzip2
+cd /usr/src/ && wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-17-current.tar.gz 
+tar -xzvf asterisk-17-current.tar.gz
+cd asterisk-17*/
+make distclean
+./contrib/scripts/install_prereq install
+./configure --with-pjproject-bundled --with-jansson-bundled
+make menuselect
+
+echo "###################################################################################################################"
+echo "#             Applying the changes made                                                                           #"
+echo "###################################################################################################################"
+make
+make install
+
+#Create Asterisk User, compile, install and set preliminary ownership
+adduser asterisk --disabled-password --gecos "Asterisk User"
+make && make install && chown -R asterisk. /var/lib/asterisk
+
+#FreePBX
+cd /usr/src
+git clone -b release/15.0 --single-branch https://github.com/freepbx/framework.git freepbx
+touch /etc/asterisk/modules.conf
+cd /usr/src/freepbx
 ./start_asterisk start
-./install -n
-#Get the rest of the modules
-#Only a very basic system is installed at this point. You will probably want to install all the modules. Alternatively, you can skip this and pick-and-choose the individual modules you want later.
 
-fwconsole ma installall
-
-#Uninstall digium_phones
-#Broken with PHP 7.3 (April 2020).
-fwconsole ma uninstall digium_phones
-
-#Apply the current configuration
+# Minimal module install
+fwconsole ma downloadinstall framework core voicemail sipsettings infoservices \
+featurecodeadmin logfiles callrecording cdr dashboard music soundlang recordings conferences
+fwconsole chown
+fwconsole ma remove pm2 --force
+rm -rf /home/asterisk/.package_cache/npm/
+rm -rf /home/asterisk/.npm
+fwconsole ma downloadinstall pm2 
 fwconsole reload
 
-#Set symlinks to the correct sound files
-cd /usr/share/asterisk
-mv sounds sounds-DIST
-ln -s /var/lib/asterisk/sounds sounds
-
-#Perform a restart to load all Asterisk modules that had not yet been configured
-fwconsole restart
-
-#Set up systemd (startup script)
-cat <<EOF > /etc/systemd/system/freepbx.service
+cat >> /etc/systemd/system/freepbx.service << EOF
 [Unit]
-Description=FreePBX VoIP Server
+Description=Freepbx
 After=mariadb.service
+ 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/sbin/fwconsole start -q
-ExecStop=/usr/sbin/fwconsole stop -q
+ExecStart=/usr/sbin/fwconsole start
+ExecStop=/usr/sbin/fwconsole stop
+ 
 [Install]
 WantedBy=multi-user.target
 EOF
- 
-systemctl daemon-reload
+
 systemctl enable freepbx
 
+echo " "
+read -p 'Please enter your Domain Name: ' domainame
+echo " "
+read -p 'Please enter your email: ' my_email
+if [ -z "$domainame" ] || [ -z "$my_email" ]
+then
+    echo 'Inputs cannot be blank please try again!'
+    exit 0
+fi
+echo " "
+
+sudo apt install certbot python-certbot-nginx python3-certbot-nginx -y
+sudo systemctl stop nginx
+
+php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
+echo " "
+echo "================================================================================="
+echo " " 
+cp /usr/src/freepbx/freepbx /etc/nginx/sites-available/
+echo " "
+data_var=`ls -ltrSh /etc/nginx/sites-available/`
+echo " "
+echo "$data_var"
+echo "================================================================================="
+data_var2=`cat /etc/nginx/sites-available/frepbx`
+echo " "
+echo "$data_var2"
+echo "=================================================================================="
+
+#Configure Nginx web server
+sed -i 's/\(^upload_max_filesize = \).*/\120M/' /etc/php/$php_ver/fpm/php.ini
+sed -i 's/\(^memory_limit = \).*/\1256M/' /etc/php/$php_ver/fpm/php.ini
+sed -i 's/www-data/asterisk/' /etc/php/7.3/fpm/pool.d/www.conf
+sudo sed -i "s/my_domain_name/$domainame/g" /etc/nginx/sites-available/freepbx
+
+mv /var/www/html/index.html /var/www/html/index.html.disable
+
+certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domainame
+
+sudo ln -s /etc/nginx/sites-available/freepbx /etc/nginx/sites-enabled/
+echo " "
+data_var3=`ls -ltrSh /etc/nginx/sites-enabled/
+echo "=================================================================================="
+nginx -t
+service nginix restart
+systemctl restart php$php_ver-fpm
+my_ip=`hostname -I`
+echo " "
+echo "###################################################################################################################"
+echo "#              You should now be able to access the Freepbx GUI at http://$my_ip                                  #"
+echo "###################################################################################################################"
+echo " "
+echo " "
+echo "###################################################################################################################"
+echo "#              Please answer Y to all questions                                                                   #"
+echo "###################################################################################################################"
+echo " "
+#Post-install tasks
+mysql_secure_installation
+echo' '
+touch /etc/xinetd.d/tftp
+cat >> /etc/xinetd.d/tftp << EOF
+service tftp
+{
+protocol        = udp
+port            = 69
+socket_type     = dgram
+wait            = yes
+user            = nobody
+server          = /usr/sbin/in.tftpd
+server_args     = /tftpboot
+disable         = no
+}
+EOF
+mkdir /tftpboot
+chmod 777 /tftpboot
+systemctl restart xinetd
+sudo apt-get -y install fail2ban ufw
+cat >> /etc/fail2ban/jail.local << EOF
+[postfix]
+enabled  = true
+port     = smtp
+filter   = postfix
+logpath  = /var/log/mail.log
+maxretry = 3
+[ssh]
+enabled = true
+port    = ssh
+filter  = sshd
+logpath  = /var/log/auth.log
+maxretry = 3
+[vsftpd]
+enabled = false
+port = ftp
+filter = vsftpd
+logpath = /var/log/auth.log
+maxretry = 5
+[pure-ftpd]
+enabled = true
+port = ftp
+filter = pure-ftpd
+logpath = /var/log/syslog
+maxretry = 3
+EOF
+sudo systemctl enable fail2ban.service
+sudo systemctl start fail2ban.service
+wget http://www.voipbl.org/voipbl.sh -O /usr/local/bin/voipbl.sh
+chmod +x /usr/local/bin/voipbl.sh
+cat >> /etc/fail2ban/jail.conf << EOF
+[asterisk-iptables]
+action = iptables-allports[name=ASTERISK, protocol=all]
+         voipbl[serial=XXXXXXXXXX]
+	 
+cat >> /etc/fail2ban/action.d/voipbl.conf << EOF 	 
+# Description: Configuration for Fail2Ban
+[Definition]
+actionban   = <getcmd> "<url>/ban/?serial=<serial>&ip=<ip>&count=<failures>"
+actionunban = <getcmd> "<url>/unban/?serial=<serial>&ip=<ip>&count=<failures>"
+[Init]
+getcmd = wget --no-verbose --tries=3 --waitretry=10 --connect-timeout=10 \
+              --read-timeout=60 --retry-connrefused --output-document=- \
+	      --user-agent=Fail2Ban
+url = http://www.voipbl.org
+EOF
+touch /etc/cron.d/voipbl
+cat >> /etc/cron.d/voipbl << EOF
+# update blacklist each 4 hours
+0 */4 * * * * root /usr/local/bin/voipbl.sh
+EOF
+sudo systemctl restart fail2ban
