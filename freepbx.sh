@@ -207,7 +207,7 @@ sed -i 's/\(^memory_limit = \).*/\1256M/' /etc/php/$php_ver/fpm/php.ini
 sed -i 's/www-data/asterisk/' /etc/php/7.3/fpm/pool.d/www.conf
 sudo sed -i "s/my_domain_name/$domainame/g" /etc/nginx/sites-available/freepbx
 
-mv /var/www/html/index.html /var/www/html/index.html.disable
+#mv /var/www/html/index.html /var/www/html/index.html.disable
 
 certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domainame
 
