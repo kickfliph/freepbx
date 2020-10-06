@@ -1,0 +1,36 @@
+server {
+    listen 80 my_domain_name;
+    listen [::]:80 my_domain_name;
+
+    # Omit next four lines if not using HTTPS. Cert/key locations work
+    # for Letsencrypt-generated cert from Certificate Manager.
+    listen 443 ssl my_domain_name;
+    listen [::]:443 ssl my_domain_name;
+    ssl_certificate /etc/asterisk/keys/my_domain_name/fullchain.pem;
+    ssl_certificate_key /etc/asterisk/keys/my_domain_name/private.pem;
+
+    root /var/www/html;
+
+    index index.html index.htm index.nginx-debian.html index.php;
+
+    server_name HOSTNAME;  # don't use _ or FreePBX may complain about referer
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;  # server defaults are good
+        fastcgi_pass unix:/run/php/php7.3-fpm.sock;
+        fastcgi_param HTACCESS on;  # disables FreePBX htaccess warning
+    }
+
+    # disallows the things that the FreePBX .htaccess files disallow
+    location ~ (/\.ht|/\.git|\.ini$|/libraries|/helpers|/i18n|/node|/views/.+php$) {
+        deny all;
+    }
+
+    # from the api module .htaccess file
+    rewrite ^/admin/api/([^/]*)/([^/]*)/?(.*)?$ /admin/api/api.php?module=$1&command=$2&route=$3 last;
+
+}
