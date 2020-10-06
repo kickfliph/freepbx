@@ -143,6 +143,7 @@ git clone -b release/15.0 --single-branch https://github.com/freepbx/framework.g
 touch /etc/asterisk/modules.conf
 cd /usr/src/freepbx
 ./start_asterisk start
+./install -n
 
 # Minimal module install
 fwconsole ma downloadinstall framework core voicemail sipsettings infoservices \
