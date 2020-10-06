@@ -107,7 +107,7 @@ tzselect
 timedatectl status
 systemctl restart rsyslog
 
-cp -R ../freepbx /usr/src
+cp ./freepbx /usr/src
 
 #DAHDI
 cd /usr/src
@@ -189,13 +189,13 @@ php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
 echo " "
 echo "================================================================================="
 echo " " 
-cp /usr/src/freepbx/freepbx /etc/nginx/sites-available/
+cp /usr/src/freepbx /etc/nginx/sites-available/
 echo " "
 data_var=`ls -ltrSh /etc/nginx/sites-available/`
 echo " "
 echo "$data_var"
 echo "================================================================================="
-data_var2=`cat /etc/nginx/sites-available/frepbx`
+data_var2=`cat /etc/nginx/sites-available/freepbx`
 echo " "
 echo "$data_var2"
 echo "=================================================================================="
