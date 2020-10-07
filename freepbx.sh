@@ -188,18 +188,18 @@ sudo systemctl stop nginx
 
 php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
 echo " "
-echo "================================================================================="
+echo "==================================================================================================================="
 echo " " 
 cp /usr/src/freepbx_nginx /etc/nginx/sites-available/freepbx
 echo " "
 data_var=`ls -ltrSh /etc/nginx/sites-available/`
 echo " "
 echo "$data_var"
-echo "================================================================================="
+echo "==================================================================================================================="
 data_var2=`cat /etc/nginx/sites-available/freepbx`
 echo " "
 echo "$data_var2"
-echo "=================================================================================="
+echo "==================================================================================================================="
 
 #Configure Nginx web server
 sed -i 's/\(^upload_max_filesize = \).*/\120M/' /etc/php/$php_ver/fpm/php.ini
@@ -212,17 +212,18 @@ sudo sed -i "s/www-data/asterisk/g" /etc/nginx/nginx.conf
 
 certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domainame
 
+sudo rm /etc/nginx/sites-enabled/default
 sudo ln -s /etc/nginx/sites-available/freepbx /etc/nginx/sites-enabled/
 echo " "
 data_var3=`ls -ltrSh /etc/nginx/sites-enabled/`
-echo "=================================================================================="
+echo "=================================================================================================================="
 nginx -t
 service nginix restart
 systemctl restart php$php_ver-fpm
 my_ip=`hostname -I`
 echo " "
 echo "###################################################################################################################"
-echo "#              You should now be able to access the Freepbx GUI at http://$my_ip                                  #"
+echo "#  You should now be able to access the Freepbx GUI at http://$my_ip                                  #"
 echo "###################################################################################################################"
 echo " "
 echo " "
