@@ -183,8 +183,9 @@ then
 fi
 echo " "
 
-sudo apt install certbot python-certbot-nginx python3-certbot-nginx -y
 sudo systemctl stop nginx
+sudo pidof nginx | xargs sudo kill -9
+sudo apt install certbot python-certbot-nginx python3-certbot-nginx -y
 
 php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
 echo " "
@@ -200,6 +201,9 @@ data_var2=`cat /etc/nginx/sites-available/freepbx`
 echo " "
 echo "$data_var2"
 echo "==================================================================================================================="
+
+sudo systemctl stop php$php_ver-fpm
+sudo pidof php$php_ver-fpm | xargs sudo kill -9
 
 #Configure Nginx web server
 sed -i 's/\(^upload_max_filesize = \).*/\120M/' /etc/php/$php_ver/fpm/php.ini
@@ -218,8 +222,8 @@ echo " "
 data_var3=`ls -ltrSh /etc/nginx/sites-enabled/`
 echo "=================================================================================================================="
 nginx -t
-service nginix restart
-systemctl restart php$php_ver-fpm
+service nginix start
+systemctl start php$php_ver-fpm
 my_ip=`hostname -I`
 echo " "
 echo "###################################################################################################################"
