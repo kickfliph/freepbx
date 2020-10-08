@@ -173,7 +173,7 @@ EOF
 systemctl enable freepbx
 
 php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
-sudo systemctl stop php-fpm
+#sudo systemctl stop php-fpm
 sudo ps aux  |  grep -i php-fpm  |  awk '{print $2}' | xargs sudo kill -9
 
 #Configure Nginx web server
@@ -194,7 +194,7 @@ fi
 echo " "
 
 sudo apt install nginx-full certbot python-certbot-nginx python3-certbot-nginx -y
-sudo systemctl stop nginx
+#sudo systemctl stop nginx
 sudo ps aux  |  grep -i nginx  |  awk '{print $2}' | xargs sudo kill -9
 cp /usr/src/freepbx_nginx /etc/nginx/sites-available/freepbx
 sudo sed -i "s/my_domain_name/$domainame/g" /etc/nginx/sites-available/freepbx
@@ -209,13 +209,13 @@ sudo ln -s /etc/nginx/sites-available/freepbx /etc/nginx/sites-enabled/
 nginx -t
 systemctl start nginx
 systemctl status nginx
-systemctl start php-fpm
-systemctl status php-fpm
+systemctl start php$php_ver-fpm
+systemctl status php$php_ver-fpm
 
 my_ip=`hostname -I`
 echo " "
 echo "###################################################################################################################"
-echo "#  You should now be able to access the Freepbx GUI at http://$my_ip                                  #"
+echo "#   You should now be able to access the Freepbx GUI at http://$my_ip                                  #"
 echo "###################################################################################################################"
 echo " "
 echo " "
