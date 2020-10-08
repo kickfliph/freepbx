@@ -61,7 +61,7 @@ apt -y install curl apt-transport-https ca-certificates
 sudo apt install php-fpm php-mbstring php-xmlrpc php-soap php-apcu php-smbclient php-ldap php-redis php-gd php-xml php-intl php-json php-imagick php-mysql php-cli php-ldap php-zip php-curl php-dev libmcrypt-dev php-pear -y
 
 #All Others
-apt -y install nginx-full locales sngrep build-essential aptitude openssh-server mariadb-server mariadb-client bison doxygen flex php-pear curl sox libncurses5-dev libssl-dev libmariadbclient-dev mpg123 libxml2-dev libnewt-dev sqlite3 libsqlite3-dev pkg-config automake libtool-bin autoconf git subversion uuid uuid-dev libiksemel-dev tftpd postfix mailutils vim ntp libspandsp-dev libcurl4-openssl-dev libical-dev libneon27-dev libasound2-dev libogg-dev libvorbis-dev libicu-dev libsrtp*-dev unixodbc unixodbc-dev python-dev xinetd e2fsprogs dbus sudo xmlstarlet lame ffmpeg dirmngr linux-headers*
+apt -y install locales sngrep build-essential aptitude openssh-server mariadb-server mariadb-client bison doxygen flex php-pear curl sox libncurses5-dev libssl-dev libmariadbclient-dev mpg123 libxml2-dev libnewt-dev sqlite3 libsqlite3-dev pkg-config automake libtool-bin autoconf git subversion uuid uuid-dev libiksemel-dev tftpd postfix mailutils vim ntp libspandsp-dev libcurl4-openssl-dev libical-dev libneon27-dev libasound2-dev libogg-dev libvorbis-dev libicu-dev libsrtp*-dev unixodbc unixodbc-dev python-dev xinetd e2fsprogs dbus sudo xmlstarlet lame ffmpeg dirmngr linux-headers*
 
 #Node.js
 curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
@@ -172,6 +172,16 @@ EOF
 
 systemctl enable freepbx
 
+php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
+sudo systemctl stop php-fpm
+sudo ps aux  |  grep -i php-fpm  |  awk '{print $2}' | xargs sudo kill -9
+
+#Configure Nginx web server
+sed -i 's/\(^upload_max_filesize = \).*/\120M/' /etc/php/$php_ver/fpm/php.ini
+sed -i 's/\(^memory_limit = \).*/\1256M/' /etc/php/$php_ver/fpm/php.ini
+sed -i 's/www-data/asterisk/' /etc/php/$php_ver/fpm/pool.d/www.conf
+
+
 echo " "
 read -p 'Please enter your Domain Name: ' domainame
 echo " "
@@ -183,47 +193,25 @@ then
 fi
 echo " "
 
+sudo apt install nginx-full certbot python-certbot-nginx python3-certbot-nginx -y
 sudo systemctl stop nginx
-sudo pidof nginx | xargs sudo kill -9
-sudo apt install certbot python-certbot-nginx python3-certbot-nginx -y
-
-php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
-echo " "
-echo "==================================================================================================================="
-echo " " 
+sudo ps aux  |  grep -i nginx  |  awk '{print $2}' | xargs sudo kill -9
 cp /usr/src/freepbx_nginx /etc/nginx/sites-available/freepbx
-echo " "
-data_var=`ls -ltrSh /etc/nginx/sites-available/`
-echo " "
-echo "$data_var"
-echo "==================================================================================================================="
-data_var2=`cat /etc/nginx/sites-available/freepbx`
-echo " "
-echo "$data_var2"
-echo "==================================================================================================================="
-
-sudo systemctl stop php$php_ver-fpm
-sudo pidof php$php_ver-fpm | xargs sudo kill -9
-
-#Configure Nginx web server
-sed -i 's/\(^upload_max_filesize = \).*/\120M/' /etc/php/$php_ver/fpm/php.ini
-sed -i 's/\(^memory_limit = \).*/\1256M/' /etc/php/$php_ver/fpm/php.ini
-sed -i 's/www-data/asterisk/' /etc/php/7.3/fpm/pool.d/www.conf
 sudo sed -i "s/my_domain_name/$domainame/g" /etc/nginx/sites-available/freepbx
 sudo sed -i "s/www-data/asterisk/g" /etc/nginx/nginx.conf
 
-#mv /var/www/html/index.html /var/www/html/index.html.disable
 
 certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domainame
 
 sudo rm /etc/nginx/sites-enabled/default
 sudo ln -s /etc/nginx/sites-available/freepbx /etc/nginx/sites-enabled/
-echo " "
-data_var3=`ls -ltrSh /etc/nginx/sites-enabled/`
-echo "=================================================================================================================="
+
 nginx -t
-service nginix start
-systemctl start php$php_ver-fpm
+systemctl start nginx
+systemctl status nginx
+systemctl start php-fpm
+systemctl status php-fpm
+
 my_ip=`hostname -I`
 echo " "
 echo "###################################################################################################################"
