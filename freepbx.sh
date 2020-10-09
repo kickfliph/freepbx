@@ -68,9 +68,9 @@ curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
 apt -y install nodejs
 
 #ODBC
-wget https://downloads.mariadb.com/Connectors/odbc/connector-odbc-2.0.19/\
-mariadb-connector-odbc-2.0.19-ga-debian-x86_64.tar.gz -P /usr/src
-cp lib/libmaodbc.so /usr/lib/x86_64-linux-gnu/odbc/
+wget https://downloads.mariadb.com/Connectors/odbc/latest/mariadb-connector-odbc-3.1.9-debian-buster-amd64.tar.gz -P /usr/src
+tar -zxvf /usr/src/mariadb-connector-odbc-3.1*.tar.gz -C /usr/src/
+cp /usr/src/lib/libmaodbc.so /usr/lib/x86_64-linux-gnu/odbc/
 
 #Create /etc/odbcinst.ini
 cat >> /etc/odbcinst.ini << EOF
@@ -111,14 +111,15 @@ cp ./freepbx /usr/src/freepbx_nginx
 
 #DAHDI
 cd /usr/src
-wget http://downloads.asterisk.org/pub/telephony/dahdi-linux-complete/dahdi-linux-complete-2.10.2+2.10.2.tar.gz
-tar zxvf dahdi-linux-complete-2.10*
-cd /usr/src/dahdi-linux-complete-2.10*/
+wget http://downloads.asterisk.org/pub/telephony/dahdi-linux-complete/releases/dahdi-linux-complete-3.1.0+3.1.0.tar.gz
+tar zxvf dahdi-linux-complete-3.1*
+cd /usr/src/dahdi-linux-complete-3.1*/
 make all && make install && make config
+make install-config
 systemctl restart dahdi
 
 #Asterisk
-apt install gcc wget g++ make patch libedit-dev uuid-dev  libxml2-dev libsqlite3-dev openssl libssl-dev bzip2
+apt install gcc wget g++ make patch libedit-dev uuid-dev  libxml2-dev libsqlite3-dev openssl libssl-dev bzip2 -y
 cd /usr/src/ && wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-17-current.tar.gz 
 tar -xzvf asterisk-17-current.tar.gz
 cd asterisk-17*/
@@ -149,7 +150,6 @@ cd /usr/src/freepbx
 fwconsole ma downloadinstall framework core voicemail sipsettings infoservices \
 featurecodeadmin logfiles callrecording cdr dashboard music soundlang recordings conferences
 fwconsole chown
-fwconsole ma remove pm2 --force
 rm -rf /home/asterisk/.package_cache/npm/
 rm -rf /home/asterisk/.npm
 fwconsole ma downloadinstall pm2 
@@ -199,16 +199,14 @@ sudo ps aux  |  grep -i nginx  |  awk '{print $2}' | xargs sudo kill -9
 cp /usr/src/freepbx_nginx /etc/nginx/sites-available/freepbx
 sudo sed -i "s/my_domain_name/$domainame/g" /etc/nginx/sites-available/freepbx
 sudo sed -i "s/www-data/asterisk/g" /etc/nginx/nginx.conf
-
-
-certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domainame
-
 sudo rm /etc/nginx/sites-enabled/default
 sudo ln -s /etc/nginx/sites-available/freepbx /etc/nginx/sites-enabled/
-
 nginx -t
 systemctl start nginx
 systemctl status nginx
+
+certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domainame
+
 systemctl start php$php_ver-fpm
 systemctl status php$php_ver-fpm
 
