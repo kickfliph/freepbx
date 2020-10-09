@@ -196,18 +196,19 @@ fi
 echo " "
 
 sudo apt install nginx-full certbot python-certbot-nginx python3-certbot-nginx -y
+
+certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domainame
 sudo systemctl stop nginx
 sudo ps aux  |  grep -i nginx  |  awk '{print $2}' | xargs sudo kill -9
+
 cp /usr/src/freepbx_nginx /etc/nginx/sites-available/freepbx
 sudo sed -i "s/my_domain_name/$domainame/g" /etc/nginx/sites-available/freepbx
 sudo sed -i "s/www-data/asterisk/g" /etc/nginx/nginx.conf
 sudo rm /etc/nginx/sites-enabled/default
 sudo ln -s /etc/nginx/sites-available/freepbx /etc/nginx/sites-enabled/
 
-certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domainame
-
 nginx -t
-#systemctl reload nginx
+systemctl start nginx
 systemctl status nginx
 
 systemctl start php$php_ver-fpm
