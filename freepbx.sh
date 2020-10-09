@@ -70,7 +70,7 @@ apt -y install nodejs
 #ODBC
 wget https://downloads.mariadb.com/Connectors/odbc/latest/mariadb-connector-odbc-3.1.9-debian-buster-amd64.tar.gz -P /usr/src
 tar -zxvf /usr/src/mariadb-connector-odbc-3.1*.tar.gz -C /usr/src/
-cp /usr/src/lib/libmaodbc.so /usr/lib/x86_64-linux-gnu/odbc/
+cp /usr/src/mariadb-connector-odb-3.1*/lib/libmaodbc.so /usr/lib/x86_64-linux-gnu/odbc/
 
 #Create /etc/odbcinst.ini
 cat >> /etc/odbcinst.ini << EOF
@@ -172,6 +172,8 @@ EOF
 
 systemctl enable freepbx
 
+#!/bin/bash
+
 php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
 #sudo systemctl stop php-fpm
 sudo ps aux  |  grep -i php-fpm  |  awk '{print $2}' | xargs sudo kill -9
@@ -196,16 +198,19 @@ echo " "
 sudo apt install nginx-full certbot python-certbot-nginx python3-certbot-nginx -y
 #sudo systemctl stop nginx
 sudo ps aux  |  grep -i nginx  |  awk '{print $2}' | xargs sudo kill -9
+
+
+certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domainame
+
 cp /usr/src/freepbx_nginx /etc/nginx/sites-available/freepbx
 sudo sed -i "s/my_domain_name/$domainame/g" /etc/nginx/sites-available/freepbx
 sudo sed -i "s/www-data/asterisk/g" /etc/nginx/nginx.conf
 sudo rm /etc/nginx/sites-enabled/default
 sudo ln -s /etc/nginx/sites-available/freepbx /etc/nginx/sites-enabled/
-nginx -t
-systemctl start nginx
-systemctl status nginx
 
-certbot --nginx --agree-tos --redirect --staple-ocsp --email $my_email -d $domainame
+nginx -t
+systemctl reload nginx
+systemctl status nginx
 
 systemctl start php$php_ver-fpm
 systemctl status php$php_ver-fpm
