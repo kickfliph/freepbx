@@ -7,7 +7,7 @@ Automated FreePBX bash script using:
 *-asterisk-17-current
 *-Freepbx 15
 *-Certbot
-*-Nginx
+*-Nginx or Apache2
 *-fail2ban
 *-voipbl
 
