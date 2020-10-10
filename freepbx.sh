@@ -70,7 +70,7 @@ apt -y install nodejs
 #ODBC
 wget https://downloads.mariadb.com/Connectors/odbc/latest/mariadb-connector-odbc-3.1.9-debian-buster-amd64.tar.gz -P /usr/src
 tar -zxvf /usr/src/mariadb-connector-odbc-3.1*.tar.gz -C /usr/src/
-cp /usr/src/mariadb-connector-odb-3.1*/lib/libmaodbc.so /usr/lib/x86_64-linux-gnu/odbc/
+cp /usr/src/mariadb-connector-odbc-3.1*/lib/mariadb/libmaodbc.so  /usr/lib/x86_64-linux-gnu/odbc/
 
 #Create /etc/odbcinst.ini
 cat >> /etc/odbcinst.ini << EOF
@@ -123,7 +123,6 @@ apt install gcc wget g++ make patch libedit-dev uuid-dev  libxml2-dev libsqlite3
 cd /usr/src/ && wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-17-current.tar.gz 
 tar -xzvf asterisk-17-current.tar.gz
 cd asterisk-17*/
-make distclean
 ./contrib/scripts/install_prereq install
 ./configure --with-pjproject-bundled --with-jansson-bundled
 make menuselect
@@ -171,8 +170,6 @@ WantedBy=multi-user.target
 EOF
 
 systemctl enable freepbx
-
-#!/bin/bash
 
 php_ver=`php -v | grep PHP | head -1 | cut -d ' ' -f2 | cut -c 1-3`
 #sudo systemctl stop php-fpm
