@@ -18,7 +18,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/my_domain_name/privkey.pem;
 
 
-    root /var/www/html;
+    root /var/www/html/admin;
 
     index index.html index.htm index.nginx-debian.html index.php;
 
