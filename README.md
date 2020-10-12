@@ -13,8 +13,8 @@ Automated FreePBX bash script using:
 
   On Add-ons select chan_ooh323 and format_mp3  as shown below
   
-  ![GitHub Logo](/images/logo.png)
-  Format: ![Alt Text](url)
+  ![](/images/install-asterisk-menu01.png)
+  
 
 * Freepbx 15
 * Certbot
