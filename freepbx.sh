@@ -107,6 +107,7 @@ tzselect
 sudo apt purge ntp -y
 sudo systemctl start systemd-timesyncd
 sudo systemctl status systemd-timesyncd
+timedatectl status
 systemctl restart rsyslog
 
 cp ./freepbx /usr/src/freepbx_nginx
@@ -129,7 +130,7 @@ sudo contrib/scripts/get_mp3_source.sh
 sudo contrib/scripts/install_prereq install
 #script to detect what debian version is running to add the jansson-bundled
 #sudo configure --with-pjproject-bundled --with-jansson-bundled
-sudo configure 
+sudo ./configure 
 make menuselect
 
 echo "###################################################################################################################"
@@ -152,8 +153,8 @@ sudo chown -R asterisk.asterisk /var/{lib,log,spool}/asterisk
 sudo chown -R asterisk.asterisk /usr/lib/asterisk
 sed -i 's/;AST_USER/AST_USER/g' /etc/default/asterisk
 sed -i 's/;AST_GROUP/AST_GROUP/g' /etc/default/asterisk
-sed -i 's/;runuser/runuser/g' etc/asterisk/asterisk.conf
-sed -i 's/;rungroup/rungroup/g' etc/asterisk/asterisk.conf
+sed -i 's/;runuser/runuser/g' /etc/asterisk/asterisk.conf
+sed -i 's/;rungroup/rungroup/g' /etc/asterisk/asterisk.conf
 sed -i 's";\[radius\]"\[radius\]"g' /etc/asterisk/cdr.conf
 sed -i 's";radiuscfg => /usr/local/etc/radiusclient-ng/radiusclient.conf"radiuscfg => /etc/radcli/radiusclient.conf"g' /etc/asterisk/cdr.conf
 sed -i 's";radiuscfg => /usr/local/etc/radiusclient-ng/radiusclient.conf"radiuscfg => /etc/radcli/radiusclient.conf"g' /etc/asterisk/cel.conf
