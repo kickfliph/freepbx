@@ -14,7 +14,22 @@ Automated FreePBX bash script using:
   On Add-ons select chan_ooh323 and format_mp3  as shown below
   
   ![](/images/install-asterisk-menu01.png)
+  
+  On Core Sound Packages, select the formats of Audio packets like below
+  
   ![](/images/install-asterisk-menu02.webp)
+  
+  For Music On Hold, select the following minimal modules
+
+  ![](/images/install-asterisk-menu03.webp)
+  
+  On Extra Sound Packages select as shown below
+  
+  ![](/images/install-asterisk-menu04.webp)
+
+  Enable app_macro under Applications menu
+
+  ![](/images/asterisk-enable-app_macro_menu04.webp)
 
 * Freepbx 15
 * Certbot
