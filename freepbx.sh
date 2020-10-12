@@ -244,3 +244,87 @@ echo "#   You should now be able to access the Freepbx GUI at http://$my_ip     
 echo "###################################################################################################################"
 echo " "
 echo " "
+echo "###################################################################################################################"
+echo "#              Please answer Y to all questions                                                                   #"
+echo "###################################################################################################################"
+echo " "
+
+#Post-install tasks
+mysql_secure_installation
+
+echo " "
+touch /etc/xinetd.d/tftp
+cat >> /etc/xinetd.d/tftp << EOF
+service tftp
+{
+protocol        = udp
+port            = 69
+socket_type     = dgram
+wait            = yes
+user            = nobody
+server          = /usr/sbin/in.tftpd
+server_args     = /tftpboot
+disable         = no
+}
+EOF
+
+mkdir /tftpboot
+chmod 777 /tftpboot
+systemctl restart xinetd
+sudo apt-get -y install fail2ban ufw
+cat >> /etc/fail2ban/jail.local << EOF
+[postfix]
+enabled  = true
+port     = smtp
+filter   = postfix
+logpath  = /var/log/mail.log
+maxretry = 3
+[ssh]
+enabled = true
+port    = ssh
+filter  = sshd
+logpath  = /var/log/auth.log
+maxretry = 3
+[vsftpd]
+enabled = false
+port = ftp
+filter = vsftpd
+logpath = /var/log/auth.log
+maxretry = 5
+[pure-ftpd]
+enabled = true
+port = ftp
+filter = pure-ftpd
+logpath = /var/log/syslog
+maxretry = 3
+EOF
+
+sudo systemctl enable fail2ban.service
+sudo systemctl start fail2ban.service
+wget http://www.voipbl.org/voipbl.sh -O /usr/local/bin/voipbl.sh
+chmod +x /usr/local/bin/voipbl.sh
+cat >> /etc/fail2ban/jail.conf << EOF
+[asterisk-iptables]
+action = iptables-allports[name=ASTERISK, protocol=all]
+         voipbl[serial=XXXXXXXXXX]
+	 
+cat >> /etc/fail2ban/action.d/voipbl.conf << EOF 	 
+# Description: Configuration for Fail2Ban
+[Definition]
+actionban   = <getcmd> "<url>/ban/?serial=<serial>&ip=<ip>&count=<failures>"
+actionunban = <getcmd> "<url>/unban/?serial=<serial>&ip=<ip>&count=<failures>"
+[Init]
+getcmd = wget --no-verbose --tries=3 --waitretry=10 --connect-timeout=10 \
+              --read-timeout=60 --retry-connrefused --output-document=- \
+	      --user-agent=Fail2Ban
+url =
+http://www.voipbl.org
+EOF
+
+touch /etc/cron.d/voipbl
+cat >> /etc/cron.d/voipbl << EOF
+# update blacklist each 4 hours
+0 */4 * * * * root /usr/local/bin/voipbl.sh
+
+EOF
+sudo systemctl restart fail2ban
